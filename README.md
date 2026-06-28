@@ -18,11 +18,9 @@ A modern PHP fanfiction archive built on a clean, lightweight framework. It is d
 
    No shell commands, no Composer, and no dependency installation are required. Simply upload the entire contents of the repository.
 
-2. **Choose a database setup mode** in the installer:
+2. **Prepare your database.**
 
-   - **Automatic (recommended for shared hosting):** Enter a temporary privileged MySQL/MariaDB account (such as `root` or a hosting control panel admin user). The installer will create the database, generate a secure dedicated database user, and grant that user full privileges on the new database. The generated credentials are saved in `config.php` and shown on the success screen.
-
-   - **Manual:** Create your own database and database user through your hosting control panel or phpMyAdmin, then enter those credentials in the installer. The installer can still create the database if it does not exist, provided the supplied user has the `CREATE` privilege.
+   The installer uses **Manual** mode: you must create the database and database user yourself through your hosting control panel or phpMyAdmin, then provide those credentials. This avoids the need for a privileged MySQL account (which shared hosting rarely provides). The installer pre-fills sensible defaults for all fields, so you typically only need to enter the database password.
 
 3. **Make the storage and install directories writable** by the web server:
 
@@ -82,11 +80,35 @@ The graphical installer is located in `install/` and is designed to work on the 
 - `install/assets/install.css` — installer styles
 - `install/assets/install.js` — vanilla JavaScript wizard controller (progressive enhancement)
 - `install/schema.sql` — database schema; `{prefix}` is replaced at install time
+- `install/install-cli.php` — headless CLI installer for automated environments
+
+### CLI installer
+
+For automated installs, CI, or Docker, run the CLI installer from the project root:
+
+```bash
+php install/install-cli.php \
+  --db-host=localhost \
+  --db-database=efiction \
+  --db-user=efiction \
+  --db-password=secret \
+  --db-prefix=fanfiction_ \
+  --site-title="My Archive" \
+  --site-email=admin@example.com \
+  --site-url=https://example.com \
+  --admin-penname=admin \
+  --admin-email=admin@example.com \
+  --admin-password="StrongPass123!"
+```
+
+All options can also be supplied via environment variables using the same names in `UPPER_SNAKE_CASE` (e.g., `DB_HOST`, `SITE_TITLE`, `ADMIN_PASSWORD`). If a password is omitted, the script will prompt for it.
 
 Features:
 
 - Server-side system requirements check (PHP 8.3+, required/recommended extensions, writable paths)
-- PDO-based MySQL/MariaDB connection test with optional database creation and automatic database/user creation
+- PDO-based MySQL/MariaDB connection test
+- Pre-filled installer defaults to Manual database setup mode (no privileged MySQL account required)
+- Headless CLI installer for automated environments
 - CSRF protection via PHP sessions
 - Password hashing with `password_hash()`
 - Install lock file (`install/install.lock`) to prevent accidental reinstallation
