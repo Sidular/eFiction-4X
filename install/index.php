@@ -264,25 +264,25 @@ foreach ($checks as $check) {
                         </div>
                         </div>
 
-                        <div id="db-manual-fields" class="conditional-panel open">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="db_user_manual">Database User</label>
-                                    <input type="text" id="db_user_manual" name="db_user_manual" value="<?= input('db_user', 'efiction') ?>" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="db_password_manual">Database Password</label>
-                                    <input type="password" id="db_password_manual" name="db_password_manual" value="<?= input('db_password', '') ?>" required>
-                                </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="db_user">Database User</label>
+                                <input type="text" id="db_user" name="db_user" value="<?= input('db_user', 'efiction') ?>" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="db_password">Database Password</label>
+                                <input type="password" id="db_password" name="db_password" value="<?= input('db_password', '') ?>" required>
                             </div>
                         </div>
 
-                        <input type="hidden" id="db_user" name="db_user" value="<?= input('db_user', 'efiction') ?>">
-                        <input type="hidden" id="db_password" name="db_password" value="<?= input('db_password', '') ?>">
+                        <div class="form-group">
+                            <span id="db-connection-status" class="db-status unsaved">Not yet saved</span>
+                            <small>Click <strong>Save & Test Connection</strong> to verify and store these credentials.</small>
+                        </div>
 
                         <div class="form-actions">
                             <button type="button" class="btn btn-secondary" data-prev>Back</button>
-                            <button type="button" class="btn btn-primary" id="btn-test-db">Test Connection</button>
+                            <button type="button" class="btn btn-primary" id="btn-test-db">Save & Test Connection</button>
                             <button type="button" class="btn btn-primary" id="btn-step-2-next" disabled>Continue</button>
                         </div>
                     </section>

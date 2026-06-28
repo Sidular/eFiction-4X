@@ -21,13 +21,6 @@
     const btnInstall = document.getElementById('btn-install');
     const mailMethod = document.getElementById('mail_method');
     const smtpPanel = document.getElementById('smtp-settings');
-    const dbCreate = document.getElementById('db_create');
-    const dbAutoMode = document.getElementById('db_auto_mode');
-    const dbManualFields = document.getElementById('db-manual-fields');
-    const dbUserManual = document.getElementById('db_user_manual');
-    const dbPasswordManual = document.getElementById('db_password_manual');
-    const dbUserHidden = document.getElementById('db_user');
-    const dbPasswordHidden = document.getElementById('db_password');
 
     let currentStep = 1;
     let dbTested = false;
@@ -75,22 +68,10 @@
         return div.innerHTML;
     }
 
-    function syncHiddenDbFields() {
-        if (dbUserHidden && dbUserManual) dbUserHidden.value = dbUserManual.value;
-        if (dbPasswordHidden && dbPasswordManual) dbPasswordHidden.value = dbPasswordManual.value;
-    }
-
-    function updateDbMode() {
-        // Manual mode is now the only option; the hidden db_auto_mode is always 0.
-        if (dbManualFields) dbManualFields.classList.add('open');
-        syncHiddenDbFields();
-    }
 
     function validatePanel(step) {
         const panel = wizard.querySelector('.step-panel[data-step="' + step + '"]');
         if (!panel) return false;
-
-        syncHiddenDbFields();
 
         const inputs = panel.querySelectorAll('input[required], select[required]');
         let valid = true;
@@ -121,7 +102,6 @@
     }
 
     function gatherFormData() {
-        syncHiddenDbFields();
         const formData = new FormData(form);
         const data = {};
         formData.forEach((value, key) => {
@@ -176,20 +156,21 @@
         });
     }
 
-    // Manual mode is the only option; keep hidden fields in sync.
-    updateDbMode();
+    function updateDbConnectionStatus(status, message) {
+        const indicator = document.getElementById('db-connection-status');
+        if (!indicator) return;
+        indicator.className = 'db-status ' + status;
+        indicator.textContent = message;
+    }
 
-    if (dbUserManual) dbUserManual.addEventListener('input', syncHiddenDbFields);
-    if (dbPasswordManual) dbPasswordManual.addEventListener('input', syncHiddenDbFields);
-
-    // Database test
+    // Database test and save
     if (btnTestDb) {
         btnTestDb.addEventListener('click', function () {
             clearAlert();
             if (!validatePanel(2)) return;
 
             const data = gatherFormData();
-            const auto = data.db_auto_mode === '1';
+            updateDbConnectionStatus('pending', 'Testing connection...');
 
             setButtonLoading(btnTestDb, true);
             dbTested = false;
@@ -211,14 +192,17 @@
                 setButtonLoading(btnTestDb, false);
                 if (result.ok) {
                     showAlert(result.message, 'success');
+                    updateDbConnectionStatus('saved', 'Connection saved and verified');
                     dbTested = true;
                     btnStep2Next.disabled = false;
                 } else {
                     showAlert(result.message, 'error');
+                    updateDbConnectionStatus('unsaved', 'Connection not saved — test failed');
                 }
             }).catch(err => {
                 setButtonLoading(btnTestDb, false);
                 showAlert('Could not test database connection: ' + err.message, 'error');
+                updateDbConnectionStatus('unsaved', 'Connection not saved — test failed');
             });
         });
     }

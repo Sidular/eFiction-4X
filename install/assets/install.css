@@ -245,6 +245,50 @@ body {
     align-items: center;
 }
 
+.db-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.db-status::before {
+    content: '';
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.db-status.unsaved::before {
+    background: #9ca3af;
+}
+
+.db-status.pending::before {
+    background: var(--warning);
+    animation: pulse 1.2s infinite;
+}
+
+.db-status.saved::before {
+    background: var(--success);
+}
+
+.db-status.unsaved[data-failed]::before,
+.db-status.unsaved.failed::before {
+    background: var(--danger);
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+
 .btn {
     display: inline-flex;
     align-items: center;
