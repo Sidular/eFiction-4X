@@ -21,8 +21,8 @@ if ($installer->isInstalled()) {
 }
 
 $csrf = $installer->csrfToken();
-$baseUrl = rtrim((string) ($_SERVER['REQUEST_SCHEME'] ?? 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . ($_SERVER['REQUEST_URI'] ?? '/install/'), '/');
-$baseUrl = preg_replace('#/install/.*$#', '', $baseUrl) ?: (rtrim((string) ($_SERVER['REQUEST_SCHEME'] ?? 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost'), '/'));
+// Always use the root domain for the site URL, never the /install path.
+$baseUrl = rtrim((string) ($_SERVER['REQUEST_SCHEME'] ?? 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost'), '/');
 
 $action = $_POST['action'] ?? '';
 $ajax = $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
