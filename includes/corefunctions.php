@@ -24,7 +24,7 @@ if(!defined("_CHARSET")) exit( );
 
 // Validates emails
 function validEmail($str) {
-	return (bool) preg_match('/^[-_a-z0-9\'+*$^&%=~!?{}]++(?:\.[-_a-z0-9\'+*$^&%=~!?{}]+)*@(?:(?![-.])[-a-z0=9.]+(?<![-.])\.[a-z]{2,6}|\d{1,3}(?:\.\d{1,3}){3})(?::\d++)?$/iD', $str);
+	return (bool) filter_var($str, FILTER_VALIDATE_EMAIL);
 }
 
 // Function used to add and remove stories from category counts
@@ -35,25 +35,25 @@ function categoryitems($catid, $value)
 	if(is_array($catid)) $cats = $catid;
 	else $cats = array($catid);
 	$cats = array_filter($cats, "isNumber");
+	if(empty($cats)) return;
 	$catquery = dbquery("SELECT catid, parentcatid, leveldown FROM ".TABLEPREFIX."fanfiction_categories WHERE FIND_IN_SET(catid, '$catid') GROUP BY catid");
-	while(isset($catquery)) {
+	do {
+		$pcats = array();
 		while($cat = dbassoc($catquery)) {
-			$pcats = array();
 			if($cat['leveldown'] > 0) $pcats[] = $cat['parentcatid'];
 			if(!in_array($cat['catid'], $cats)) $cats[] = $cat['catid'];
 		}
-		if(count($pcats) > 0) $catquery = dbquery("SELECT catid, parentcatid, leveldown FROM ".TABLEPREFIX."fanfiction_categories WHERE FIND_IN_SET(catid, '".implode($pcats)."') GROUP BY catid");
-		else unset($catquery);
-	}
-	dbquery("UPDATE ".TABLEPREFIX."fanfiction_categories SET numitems = (numitems + $value) WHERE FIND_IN_SET(catid, '".implode(",", $cats)."')");
+		if(count($pcats) > 0) $catquery = dbquery("SELECT catid, parentcatid, leveldown FROM ".TABLEPREFIX."fanfiction_categories WHERE FIND_IN_SET(catid, '".implode(",", $pcats)."') GROUP BY catid");
+		else $catquery = false;
+	} while($catquery);
+	if(!empty($cats)) dbquery("UPDATE ".TABLEPREFIX."fanfiction_categories SET numitems = (numitems + $value) WHERE FIND_IN_SET(catid, '".implode(",", $cats)."')");
 }
 
 // Function to recurse through categories to build a list of the category and all it's sub-categories.
 function recurseCategories($catid) {
 	global $catlist;
-	$$catid = $catlist;
-	$categorylist[] = $catid;
-	foreach($$catid as $cat => $info) {
+	$categorylist = [$catid];
+	foreach($catlist as $cat => $info) {
 		if($info['pid'] == $catid) {
 			$categorylist = array_merge($categorylist, recurseCategories($cat));
 		}
@@ -366,7 +366,7 @@ function replace_naughty($text) {
 	$i = 0;
 	for($j = 0; $j < sizeof($words); $j++) {
 		if(strpos($words[$j], "*") === false) {
-			$replace[$i] = str_pad($words[$j]{0}, strlen($words[$j]), "*");
+			$replace[$i] = str_pad($words[$j][0], strlen($words[$j]), "*");
 			$naughtywords[$i] = '/\b('.$words[$j].'\b)|('.build_word($words[$j]).')\b/i';
 			$i++;
 		}

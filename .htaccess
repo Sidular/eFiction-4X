@@ -1,0 +1,43 @@
+# ----------------------------------------------------------------------
+# eFiction Modern - Apache / PHP 8.x Security & Performance Directives
+# ----------------------------------------------------------------------
+
+# Protect sensitive files
+<FilesMatch "\.(sql|log|ini|json|lock|phar|env|vars|gitignore|md|yml|yaml)$">
+    <RequireAll>
+        Require all denied
+    </RequireAll>
+</FilesMatch>
+
+# Deny access to version control, vendor, and config
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(\.git|\.env|\.dev\.vars|config\.php|vendor|composer\.(json|lock)) - [F,L,NC]
+</IfModule>
+
+# Disable directory indexing
+Options -Indexes
+
+# Set default charset
+AddDefaultCharset UTF-8
+
+# Security headers (when mod_headers is available)
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    # Content-Security-Policy can be enabled after reviewing all inline scripts
+    # Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' cdn.jsdelivr.net;"
+</IfModule>
+
+# PHP 8.x runtime settings (when running as Apache module)
+<IfModule mod_php.c>
+    php_flag display_errors off
+    php_flag log_errors on
+    php_value upload_max_filesize 8M
+    php_value post_max_size 8M
+    php_value max_execution_time 60
+    php_value memory_limit 128M
+    php_value default_charset UTF-8
+</IfModule>

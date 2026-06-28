@@ -1,0 +1,36 @@
+# Composer
+/vendor/
+composer.lock
+
+# Environment / secrets
+config.php
+.env
+.dev.vars
+*.env
+
+# Database backups / dumps
+*.sql
+*.sql.gz
+
+# Logs
+*.log
+logs/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Runtime cache
+/cache/
+/tmp/
+/.wrangler/
+
+# Modernization helpers (one-time scripts)
+modernize_*.py

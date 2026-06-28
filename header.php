@@ -24,46 +24,34 @@
 @ ini_set('arg_separator.output','&amp;'); 
 if(isset($_GET['debug'])) @ error_reporting(E_ALL);
 if(isset($_GET['benchmark'])) {
-	list($usec, $sec) = explode(" ", microtime());
-	$start = ((float)$usec + (float)$sec);
+	$start = microtime(true);
 }
 $headerSent = false;
-if(get_magic_quotes_gpc()){
-	foreach($_POST as $var => $val) {
-		$_POST[$var] = is_array( $val ) ? array_map( 'stripslashes', $val ) : stripslashes( $val );
-	}
-	foreach($_GET as $var => $val) {
-		$_GET[$var] = is_array( $val ) ? array_map( 'stripslashes', $val ) : stripslashes( $val );
-	}
-}
 
-// Prevent possible XSS attacks via $_GET.
+// PHP 7.4/8.x: magic_quotes and register_globals were removed long ago.
+// This block is intentionally left as a no-op for backward compatibility.
+
+// Prevent possible XSS attacks via $_GET. (Basic heuristic; real output should be escaped.)
 foreach ($_GET as $v) {
-	if(preg_match('@<script[^>]*?>.*?</script>@si', $v) ||
-		preg_match("'@<iframe[^>]*?>.*?</script>@si'", $v) ||
-		preg_match("'@<applet[^>]*?>.*?</script>@si'", $v) ||
-		preg_match("'@<meta[^>]*?>.*?</script>@si'", $v) ||
-		preg_match('@<[\/\!]*?[^<>]*?>@si', $v) ||
-		preg_match('@<style[^>]*?>.*?</style>@siU', $v) ||
-		preg_match('@<![\s\S]*?--[ \t\n\r]*>@', $v)) {
-		include("languages/en.php"); // no language set yet, so default to English.	
+	$check = is_array($v) ? implode('', $v) : (string) $v;
+	if(preg_match('@<script[^>]*?>.*?</script>@si', $check) ||
+		preg_match('@<iframe[^>]*?>.*?</iframe>@si', $check) ||
+		preg_match('@<applet[^>]*?>.*?</applet>@si', $check) ||
+		preg_match('@<meta[^>]*?>.*?</meta>@si', $check) ||
+		preg_match('@<[\/\!]*?[^<>]*?>@si', $check) ||
+		preg_match('@<style[^>]*?>.*?</style>@siU', $check) ||
+		preg_match('@<![\s\S]*?--[ \t\n\r]*>@', $check)) {
+		include("languages/en.php"); // no language set yet, so default to English.
 		die (_POSSIBLEHACK);
 	}
 }
-unset($v);
+unset($v, $check);
 
 if(!isset($_SESSION)) session_start();
-// clear the global variables if register globals is on.
-if(ini_get('register_globals')) {
-	$arrayList = array_merge($_SESSION, $_GET, $_POST, $_COOKIE);
-	foreach($arrayList as $k => $v) {
-		unset($GLOBALS[$k]);
-	}
-}
 
 Header('Cache-Control: private, no-cache, must-revalidate, max_age=0, post-check=0, pre-check=0');
-header ("Pragma: no-cache"); 
-header ("Expires: 0"); 
+header ("Pragma: no-cache");
+header ("Expires: 0");
 header("Content-Type: text/html; charset="._CHARSET);
 
 // Locate config.php and set the basedir path
@@ -79,6 +67,10 @@ if(empty($sitekey)) {
 if(isset($skin)) $globalskin = $skin; 
 $settingsresults = dbquery("SELECT * FROM ".$settingsprefix."fanfiction_settings WHERE sitekey = '".$sitekey."'");
 $settings = dbassoc($settingsresults);
+if(!$settings) {
+	include(_BASEDIR."languages/en.php");
+	die(_FATALERROR._NOTCONNECTED);
+}
 if(!defined("SITEKEY")) define("SITEKEY", $settings['sitekey']);
 unset($settings['sitekey']);
 if(!defined("TABLEPREFIX")) define("TABLEPREFIX", $settings['tableprefix']);
@@ -138,8 +130,8 @@ if(isset($_GET['skin'])) {
 	$_SESSION[SITEKEY."_skin"] = $siteskin;
 }
 
-$v = explode(".", $version);
 include("version.php");
+$v = isset($version) ? explode(".", $version) : [0, 0, 0];
 $newV = explode(".", $version);
 //if($v[0] == $newV[0] && ($v[1] < $newV[1] || (isset($newV[2]) && $v[2] < $newV[2]))) {
 foreach($newV AS $k => $l) {
@@ -162,6 +154,7 @@ if($maintenance && !isADMIN && basename($_SERVER['PHP_SELF']) != "maintenance.ph
 }
 
 $blockquery = dbquery("SELECT * FROM ".TABLEPREFIX."fanfiction_blocks");
+$blocks = [];
 while($block = dbassoc($blockquery)) {
 	$blocks[$block['block_name']] = unserialize($block['block_variables']);
 	$blocks[$block['block_name']]['title'] = $block['block_title'];
@@ -180,7 +173,7 @@ else require_once ("languages/en.php");
 if(is_dir(_BASEDIR."skins/$siteskin")) $skindir = _BASEDIR."skins/$siteskin";
 else if(is_dir(_BASEDIR."skins/".$settings['skin'])) $skindir = _BASEDIR."skins/".$defaultskin;
 else $skindir = _BASEDIR."default_tpls";
-if(USERUID) {
+if(defined('USERUID') && USERUID) {
 	$prefs = dbquery("SELECT sortby, storyindex, tinyMCE FROM ".TABLEPREFIX."fanfiction_authorprefs WHERE uid = '".USERUID."'");
 	if(dbnumrows($prefs)) list($defaultsort, $displayindex, $tinyMCE) = dbrow($prefs);
 }
@@ -203,13 +196,13 @@ if($current == "viewstory"){
 		$titleinfo = stripslashes($story['title'])." "._BY." ".implode(", ", $authlink);
 		$metaDesc = htmlspecialchars(stripslashes($story['summary']));
 		$filename = basename($titleinfo.".html");
-		$ie = strpos("msie", strtolower($_SERVER['HTTP_USER_AGENT'])) !== false ? true : false;
+		$ie = stripos($_SERVER['HTTP_USER_AGENT'] ?? '', 'msie') !== false;
 		if ($ie) $filename = rawurlencode($filename);
 		header("Content-Disposition: inline; filename=\"".$titleinfo."\"");
  	}
 }
 if($current == "viewuser" && isNumber($uid)) {
-	$author = dbquery("SELECT "._PENNAMEFIELD." as penname FROM "._AUTHORTABLE." WHERE "._UIDFIELD." = '".$uid."'");
+	$author = dbquery("SELECT "._PENNAMEFIELD." as penname FROM "._AUTHORTABLE." WHERE "._UIDFIELD." = '".$uid."' LIMIT 1");
 	list($penname) = dbrow($author);
 	$titleinfo = "$sitename :: $penname";
 }
