@@ -45,17 +45,25 @@ A modern PHP fanfiction archive built on a clean, lightweight framework. It is d
 
 5. **Run the web installer**:
 
-   Open the site in a browser and visit `/install/`. Fill in the database credentials, site information, and admin account. The installer will:
-   - Create the database schema
-   - Insert default settings
+   Open the site in a browser and visit `/install/`. The installer provides a guided, multi-step wizard that checks system requirements, tests your database connection, and fills in site and admin details. It works with JavaScript enabled (AJAX-enhanced) and falls back to a traditional form when JavaScript is disabled for maximum hosting compatibility.
+
+   The installer will:
+   - Check PHP version and required extensions
+   - Verify that `config.php`, `storage/`, and `install/` are writable
+   - Test (and optionally create) the MySQL/MariaDB database
+   - Create the database schema from `install/schema.sql`
+   - Insert default site settings
    - Write `config.php`
-   - Create the admin user
+   - Create the admin user with a securely hashed password
+   - Write `install/install.lock` to prevent accidental reinstallation
 
 6. **Remove or rename the `install/` directory** after installation for security:
 
    ```bash
    rm -rf install
    ```
+
+   The application also checks for `config.php` or `install/install.lock` on each request and redirects back to the site if the installer is no longer needed.
 
 7. **Copy the example configuration** (optional):
 
@@ -64,6 +72,25 @@ A modern PHP fanfiction archive built on a clean, lightweight framework. It is d
    ```bash
    cp config.php.example config.php
    ```
+
+## Installer
+
+The graphical installer is located in `install/` and is designed to work on the widest range of shared hosting environments:
+
+- `install/index.php` — wizard entry point and AJAX endpoints
+- `install/Installer.php` — self-contained backend installer logic (no Composer autoloader required)
+- `install/assets/install.css` — installer styles
+- `install/assets/install.js` — vanilla JavaScript wizard controller (progressive enhancement)
+- `install/schema.sql` — database schema; `{prefix}` is replaced at install time
+
+Features:
+
+- Server-side system requirements check (PHP 8.3+, required/recommended extensions, writable paths)
+- PDO-based MySQL/MariaDB connection test with optional database creation
+- CSRF protection via PHP sessions
+- Password hashing with `password_hash()`
+- Install lock file (`install/install.lock`) to prevent accidental reinstallation
+- No-JavaScript fallback for browsers or hosting environments where JavaScript is unavailable
 
 ## Configuration
 
