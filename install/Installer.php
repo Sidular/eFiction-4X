@@ -153,24 +153,41 @@ final class Installer
     }
 
     /**
-     * Test a database connection. Optionally create the database if it does not exist.
+     * Test a database connection. Optionally create the database and a dedicated user if they do not exist.
      *
-     * @return array{ok: bool, message: string, pdo: PDO|null}
+     * @return array{ok: bool, message: string, pdo: PDO|null, db: array<string, mixed>|null}
      */
-    public function testDatabase(array $db, bool $createIfMissing = false): array
+    public function testDatabase(array $db, bool $createIfMissing = false, bool $autoCreateUser = false): array
     {
         $host = $db['host'] ?? 'localhost';
         $database = $db['database'] ?? '';
-        $user = $db['user'] ?? '';
-        $password = $db['password'] ?? '';
         $charset = $db['charset'] ?? 'utf8mb4';
+        $prefix = preg_replace('/[^a-z0-9_]/i', '', $db['prefix'] ?? 'fanfiction_');
+        if ($prefix === '') {
+            $prefix = 'fanfiction_';
+        }
 
         if ($database === '') {
-            return ['ok' => false, 'message' => 'Database name is required.', 'pdo' => null];
+            return ['ok' => false, 'message' => 'Database name is required.', 'pdo' => null, 'db' => null];
+        }
+
+        $autoMode = (bool) ($db['auto_mode'] ?? false);
+        if ($autoMode) {
+            $user = $db['admin_user'] ?? '';
+            $password = $db['admin_password'] ?? '';
+            $createIfMissing = true;
+        } else {
+            $user = $db['user'] ?? '';
+            $password = $db['password'] ?? '';
         }
 
         if ($user === '') {
-            return ['ok' => false, 'message' => 'Database user is required.', 'pdo' => null];
+            return [
+                'ok' => false,
+                'message' => $autoMode ? 'Database admin user is required.' : 'Database user is required.',
+                'pdo' => null,
+                'db' => null,
+            ];
         }
 
         $dsn = sprintf('mysql:host=%s;charset=%s', $host, $charset);
@@ -184,7 +201,7 @@ final class Installer
             $pdo = new PDO($dsn, $user, $password, $options);
             $pdo->exec("SET NAMES {$charset} COLLATE {$charset}_unicode_ci");
         } catch (PDOException $e) {
-            return ['ok' => false, 'message' => 'Could not connect to the database server: ' . $e->getMessage(), 'pdo' => null];
+            return ['ok' => false, 'message' => 'Could not connect to the database server: ' . $e->getMessage(), 'pdo' => null, 'db' => null];
         }
 
         try {
@@ -201,22 +218,120 @@ final class Installer
                             'ok' => false,
                             'message' => 'Database does not exist and could not be created: ' . $e->getMessage(),
                             'pdo' => null,
+                            'db' => null,
                         ];
                     }
                 } else {
                     return [
                         'ok' => false,
-                        'message' => 'Database does not exist. Create it first or enable "Create database" below.',
+                        'message' => 'Database does not exist. Create it first or enable auto-create.',
                         'pdo' => null,
+                        'db' => null,
                     ];
                 }
             }
 
             $pdo->exec("USE `{$database}`");
-            return ['ok' => true, 'message' => 'Database connection successful.', 'pdo' => $pdo];
+
+            if ($autoCreateUser) {
+                $result = $this->ensureDatabaseUser($pdo, $db, $database);
+                if (!$result['ok']) {
+                    return [
+                        'ok' => false,
+                        'message' => $result['message'],
+                        'pdo' => null,
+                        'db' => null,
+                    ];
+                }
+                $db = array_merge($db, $result['db']);
+            }
+
+            return ['ok' => true, 'message' => 'Database connection successful.', 'pdo' => $pdo, 'db' => $db];
         } catch (PDOException $e) {
-            return ['ok' => false, 'message' => 'Database error: ' . $e->getMessage(), 'pdo' => null];
+            return ['ok' => false, 'message' => 'Database error: ' . $e->getMessage(), 'pdo' => null, 'db' => null];
         }
+    }
+
+    /**
+     * Create a dedicated database user and grant it access to the database.
+     *
+     * @return array{ok: bool, message: string, db: array<string, mixed>}
+     */
+    private function ensureDatabaseUser(PDO $pdo, array $db, string $database): array
+    {
+        $host = $db['host'] ?? 'localhost';
+        $charset = $db['charset'] ?? 'utf8mb4';
+
+        $userName = $db['auto_user_name'] ?? null;
+        $userPassword = $db['auto_user_password'] ?? null;
+
+        if (!$userName || !$userPassword) {
+            $userName = $this->generateUniqueName($db['prefix'] ?? 'efiction');
+            $userPassword = $this->generatePassword(24);
+        }
+
+        $quotedUser = "'" . str_replace("'", "''", $userName) . "'@'" . str_replace("'", "''", $host) . "'";
+
+        try {
+            $stmt = $pdo->prepare('SELECT 1 FROM mysql.user WHERE user = ? AND host = ?');
+            $stmt->execute([$userName, $host]);
+            $userExists = (bool) $stmt->fetch();
+
+            if ($userExists) {
+                $pdo->exec("DROP USER IF EXISTS {$quotedUser}");
+            }
+
+            $pdo->exec("CREATE USER {$quotedUser} IDENTIFIED BY '" . str_replace("'", "''", $userPassword) . "'");
+            $pdo->exec("GRANT ALL PRIVILEGES ON `" . str_replace('`', '``', $database) . "`.* TO {$quotedUser}");
+            $pdo->exec('FLUSH PRIVILEGES');
+        } catch (PDOException $e) {
+            return [
+                'ok' => false,
+                'message' => 'Could not create the database user: ' . $e->getMessage(),
+                'db' => [],
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'message' => 'Database user created successfully.',
+            'db' => [
+                'user' => $userName,
+                'password' => $userPassword,
+            ],
+        ];
+    }
+
+    /**
+     * Generate a unique MySQL username.
+     */
+    private function generateUniqueName(string $prefix): string
+    {
+        $clean = preg_replace('/[^a-z0-9_]/i', '', $prefix);
+        $clean = substr($clean, 0, 32);
+        if ($clean === '') {
+            $clean = 'efiction';
+        }
+        $random = bin2hex(random_bytes(4));
+        $name = $clean . '_' . $random;
+        if (strlen($name) > 32) {
+            $name = substr($name, 0, 32);
+        }
+        return $name;
+    }
+
+    /**
+     * Generate a random password.
+     */
+    private function generatePassword(int $length): string
+    {
+        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*-_=+.';
+        $max = strlen($chars) - 1;
+        $password = '';
+        for ($i = 0; $i < $length; $i++) {
+            $password .= $chars[random_int(0, $max)];
+        }
+        return $password;
     }
 
     /**
@@ -406,9 +521,18 @@ final class Installer
             return $validation;
         }
 
-        $test = $this->testDatabase($db, (bool) ($db['create'] ?? false));
+        $autoMode = (bool) ($db['auto_mode'] ?? false);
+        $createDb = $autoMode || (bool) ($db['create'] ?? false);
+        $autoUser = $autoMode;
+
+        $test = $this->testDatabase($db, $createDb, $autoUser);
         if (!$test['ok']) {
             return ['ok' => false, 'message' => $test['message'], 'details' => []];
+        }
+
+        if ($autoMode && isset($test['db']['user'], $test['db']['password'])) {
+            $db['user'] = $test['db']['user'];
+            $db['password'] = $test['db']['password'];
         }
 
         $pdo = $test['pdo'];
@@ -442,6 +566,8 @@ final class Installer
                     'admin_uid' => $uid,
                     'site_key' => $siteKey,
                     'table_prefix' => $prefix,
+                    'db_user' => $autoMode ? $db['user'] : null,
+                    'db_password' => $autoMode ? $db['password'] : null,
                 ],
             ];
         } catch (Throwable $e) {
@@ -457,12 +583,20 @@ final class Installer
     public function validateInput(array $db, array $site, array $admin): array
     {
         $errors = [];
+        $autoMode = (bool) ($db['auto_mode'] ?? false);
 
         if (trim($db['database'] ?? '') === '') {
             $errors[] = 'Database name is required.';
         }
-        if (trim($db['user'] ?? '') === '') {
-            $errors[] = 'Database user is required.';
+
+        if ($autoMode) {
+            if (trim($db['admin_user'] ?? '') === '') {
+                $errors[] = 'Database admin user is required for auto-creation.';
+            }
+        } else {
+            if (trim($db['user'] ?? '') === '') {
+                $errors[] = 'Database user is required.';
+            }
         }
 
         if (trim($site['title'] ?? '') === '') {

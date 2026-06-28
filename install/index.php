@@ -64,6 +64,9 @@ if ($action === 'test_db') {
         'password' => inputRaw('db_password', ''),
         'charset' => 'utf8mb4',
         'create' => (bool) inputRaw('db_create', false),
+        'auto_mode' => (bool) inputRaw('db_auto_mode', false),
+        'admin_user' => trim(inputRaw('db_admin_user', '')),
+        'admin_password' => inputRaw('db_admin_password', ''),
     ];
     $result = $installer->testDatabase($db, $db['create']);
     sendJson(['ok' => $result['ok'], 'message' => $result['message']]);
@@ -86,6 +89,9 @@ if ($action === 'install') {
             'charset' => 'utf8mb4',
             'prefix' => trim(inputRaw('db_prefix', 'fanfiction_')),
             'create' => (bool) inputRaw('db_create', false),
+            'auto_mode' => (bool) inputRaw('db_auto_mode', false),
+            'admin_user' => trim(inputRaw('db_admin_user', '')),
+            'admin_password' => inputRaw('db_admin_password', ''),
         ];
 
         $site = [
@@ -228,7 +234,16 @@ foreach ($checks as $check) {
 
                     <section class="step-panel" data-step="2">
                         <h2>Database Configuration</h2>
-                        <p class="step-description">Enter your MySQL or MariaDB database credentials.</p>
+                        <p class="step-description">Choose how the installer should connect to MySQL or MariaDB.</p>
+
+                        <div class="form-group">
+                            <label for="db_auto_mode">Database Setup Mode</label>
+                            <select id="db_auto_mode" name="db_auto_mode">
+                                <option value="1" <?= (inputRaw('db_auto_mode', '1') === '1') ? 'selected' : '' ?>>Automatic — create the database and a dedicated user</option>
+                                <option value="0" <?= (inputRaw('db_auto_mode', '1') === '0') ? 'selected' : '' ?>>Manual — I already have a database and user</option>
+                            </select>
+                            <small>Automatic mode uses a temporary privileged account to create the database and generate a secure eFiction user.</small>
+                        </div>
 
                         <div class="form-group">
                             <label for="db_host">Database Host</label>
@@ -247,18 +262,36 @@ foreach ($checks as $check) {
                             </div>
                         </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="db_user">Database User</label>
-                                <input type="text" id="db_user" name="db_user" value="<?= input('db_user', '') ?>" required>
+                        <div id="db-auto-fields" class="conditional-panel <?= (inputRaw('db_auto_mode', '1') === '1') ? 'open' : '' ?>">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="db_admin_user">Privileged Admin User</label>
+                                    <input type="text" id="db_admin_user" name="db_admin_user" value="<?= input('db_admin_user', '') ?>" required>
+                                    <small>A temporary MySQL/MariaDB user with CREATE, CREATE USER, and GRANT privileges.</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="db_admin_password">Privileged Admin Password</label>
+                                    <input type="password" id="db_admin_password" name="db_admin_password" value="<?= input('db_admin_password', '') ?>">
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label for="db_password">Database Password</label>
-                                <input type="password" id="db_password" name="db_password" value="<?= input('db_password', '') ?>">
+                            <input type="hidden" id="db_user" name="db_user" value="<?= input('db_user', '') ?>">
+                            <input type="hidden" id="db_password" name="db_password" value="">
+                        </div>
+
+                        <div id="db-manual-fields" class="conditional-panel <?= (inputRaw('db_auto_mode', '1') === '0') ? 'open' : '' ?>">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="db_user_manual">Database User</label>
+                                    <input type="text" id="db_user_manual" name="db_user_manual" value="<?= input('db_user', '') ?>">
+                                </div>
+                                <div class="form-group">
+                                    <label for="db_password_manual">Database Password</label>
+                                    <input type="password" id="db_password_manual" name="db_password_manual" value="">
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-group checkbox">
+                        <div class="form-group checkbox" id="db-create-wrapper">
                             <label>
                                 <input type="checkbox" id="db_create" name="db_create" value="1" <?= inputRaw('db_create', false) ? 'checked' : '' ?>>
                                 Create database if it does not exist (requires CREATE privileges)

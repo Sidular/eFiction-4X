@@ -18,7 +18,11 @@ A modern PHP fanfiction archive built on a clean, lightweight framework. It is d
 
    No shell commands, no Composer, and no dependency installation are required. Simply upload the entire contents of the repository.
 
-2. **Create a MySQL/MariaDB database** and a user with full privileges on that database.
+2. **Choose a database setup mode** in the installer:
+
+   - **Automatic (recommended for shared hosting):** Enter a temporary privileged MySQL/MariaDB account (such as `root` or a hosting control panel admin user). The installer will create the database, generate a secure dedicated database user, and grant that user full privileges on the new database. The generated credentials are saved in `config.php` and shown on the success screen.
+
+   - **Manual:** Create your own database and database user through your hosting control panel or phpMyAdmin, then enter those credentials in the installer. The installer can still create the database if it does not exist, provided the supplied user has the `CREATE` privilege.
 
 3. **Make the storage and install directories writable** by the web server:
 
@@ -82,7 +86,7 @@ The graphical installer is located in `install/` and is designed to work on the 
 Features:
 
 - Server-side system requirements check (PHP 8.3+, required/recommended extensions, writable paths)
-- PDO-based MySQL/MariaDB connection test with optional database creation
+- PDO-based MySQL/MariaDB connection test with optional database creation and automatic database/user creation
 - CSRF protection via PHP sessions
 - Password hashing with `password_hash()`
 - Install lock file (`install/install.lock`) to prevent accidental reinstallation
