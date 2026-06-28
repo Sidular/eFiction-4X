@@ -11,8 +11,10 @@
         "ext-session": "*",
         "ext-json": "*",
         "ext-fileinfo": "*",
-        "ext-openssl": "*",
-        "phpmailer/phpmailer": "^6.9"
+        "ext-openssl": "*"
+    },
+    "suggest": {
+        "phpmailer/phpmailer": "^6.9 (only needed if you prefer PHPMailer over the built-in mail/SMTP implementation)"
     },
     "require-dev": {
         "phpstan/phpstan": "^1.11",

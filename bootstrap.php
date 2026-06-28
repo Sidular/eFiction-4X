@@ -2,7 +2,34 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/vendor/autoload.php';
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+} else {
+    spl_autoload_register(static function (string $class): void {
+        $prefix = 'eFiction\\';
+        $baseDir = __DIR__ . '/src/';
+        $installBaseDir = __DIR__ . '/install/';
+
+        $len = strlen($prefix);
+        if (strncmp($prefix, $class, $len) !== 0) {
+            return;
+        }
+
+        $relative = substr($class, $len);
+        $relative = str_replace('\\', '/', $relative);
+
+        $file = $baseDir . $relative . '.php';
+        if (is_file($file)) {
+            require_once $file;
+            return;
+        }
+
+        $installFile = $installBaseDir . $relative . '.php';
+        if (is_file($installFile)) {
+            require_once $installFile;
+        }
+    });
+}
 
 use eFiction\App;
 use eFiction\Config;

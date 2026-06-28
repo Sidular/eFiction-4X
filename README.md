@@ -9,43 +9,35 @@ A modern PHP fanfiction archive built on a clean, lightweight framework. It is d
 - PHP >= 8.3
 - MySQL 5.7+ or MariaDB 10.3+
 - Apache with `mod_rewrite` enabled, or another web server configured to rewrite all requests to `index.php`
-- Composer 2.x
 - PHP extensions: `pdo`, `pdo_mysql`, `mbstring`, `session`, `json`, `fileinfo`, `openssl`
+- Composer is **optional** — eFiction now works with a built-in autoloader and no external dependencies.
 
-## Installation
+## Installation (Upload and Go)
 
-1. **Clone the repository** into your web root (or a subdirectory):
+1. **Upload the files** to your web host's public directory (e.g., `public_html`, `htdocs`, `www`, or a subdirectory).
 
-   ```bash
-   git clone https://github.com/Sidular/eFiction-4X.git
-   cd eFiction-4X
+   No shell commands, no Composer, and no dependency installation are required. Simply upload the entire contents of the repository.
+
+2. **Create a MySQL/MariaDB database** and a user with full privileges on that database.
+
+3. **Make the storage and install directories writable** by the web server:
+
+   - `storage/` — must be writable for stories, images, cache, and logs
+   - `install/` — must be writable during the installation process
+   - `config.php` will be created by the installer, so the web root must be writable
+
+   On most shared hosts, you can set permissions to `755` via your FTP client or file manager:
+
+   ```
+   storage/
+   install/
    ```
 
-2. **Install dependencies** with Composer:
+4. **Open the installer in your browser**:
 
-   ```bash
-   composer install --no-dev --optimize-autoloader
-   ```
+   Navigate to `https://yourdomain.com/install/` (or `https://yourdomain.com/subdir/install/` if you uploaded to a subdirectory).
 
-   Or, if you do not have Composer installed on the server, you can run `composer install` locally and upload the `vendor/` directory.
-
-3. **Create a MySQL/MariaDB database** and a user with full privileges on that database.
-
-4. **Make the storage directories writable** by the web server:
-
-   ```bash
-   chmod -R 755 storage
-   ```
-
-   The following directories are used at runtime:
-   - `storage/stories` — chapter text files
-   - `storage/images` — uploaded images
-   - `storage/cache` — cached data
-   - `storage/logs` — error / application logs
-
-5. **Run the web installer**:
-
-   Open the site in a browser and visit `/install/`. The installer provides a guided, multi-step wizard that checks system requirements, tests your database connection, and fills in site and admin details. It works with JavaScript enabled (AJAX-enhanced) and falls back to a traditional form when JavaScript is disabled for maximum hosting compatibility.
+   The installer provides a guided, multi-step wizard that checks system requirements, tests your database connection, and fills in site and admin details. It works with JavaScript enabled (AJAX-enhanced) and falls back to a traditional form when JavaScript is unavailable for maximum hosting compatibility.
 
    The installer will:
    - Check PHP version and required extensions
@@ -57,21 +49,25 @@ A modern PHP fanfiction archive built on a clean, lightweight framework. It is d
    - Create the admin user with a securely hashed password
    - Write `install/install.lock` to prevent accidental reinstallation
 
-6. **Remove or rename the `install/` directory** after installation for security:
-
-   ```bash
-   rm -rf install
-   ```
+5. **Remove or rename the `install/` directory** after installation for security.
 
    The application also checks for `config.php` or `install/install.lock` on each request and redirects back to the site if the installer is no longer needed.
 
-7. **Copy the example configuration** (optional):
+6. **Optional: manual configuration**
 
    If you prefer to configure the site manually, copy `config.php.example` to `config.php` and adjust the values. The site will not run until `config.php` exists.
 
-   ```bash
-   cp config.php.example config.php
-   ```
+## Composer-based installation (optional)
+
+If you prefer to use Composer or want to run development tools, you can still install dependencies:
+
+```bash
+composer install --no-dev --optimize-autoloader
+```
+
+When a `vendor/autoload.php` file is present, eFiction will use it. Otherwise, it falls back to the built-in PSR-4 autoloader for the `eFiction\` and `eFiction\Install\` namespaces.
+
+PHPMailer is now optional. It is listed in `composer.json` under `suggest` and is not required for upload-and-go deployments. The built-in mailer uses PHP's `mail()` function and can optionally send mail through raw SMTP sockets.
 
 ## Installer
 
@@ -98,7 +94,7 @@ The main configuration file is `config.php`. It is created automatically by the 
 
 - `db` — database host, name, user, password, and table prefix
 - `site` — site URL, title, email, timezone, language, and storage paths
-- `mail` — email delivery method (`mail`, `smtp`, or `sendmail`)
+- `mail` — email delivery method (`mail`, `smtp`, or `sendmail`). PHPMailer is no longer required; SMTP is handled by the built-in mailer.
 - `session` — session name and lifetime
 - `security` — CSRF token name and password hashing cost
 
@@ -134,7 +130,7 @@ server {
 
 ## Development
 
-To run syntax checks on all PHP files:
+To run syntax checks on all PHP files, PHP must be installed locally:
 
 ```bash
 composer run lint
