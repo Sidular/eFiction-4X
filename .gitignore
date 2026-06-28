@@ -1,36 +1,47 @@
-# Composer
+# Composer dependencies
 /vendor/
 composer.lock
 
-# Environment / secrets
-config.php
+# Configuration files (local only)
+/config.php
+
+# Environment files
 .env
-.dev.vars
-*.env
+.env.local
 
-# Database backups / dumps
-*.sql
-*.sql.gz
+# Storage and runtime data
+/storage/cache/*
+/storage/logs/*
+/storage/stories/*
+/storage/images/*
+!/storage/cache/.gitkeep
+!/storage/logs/.gitkeep
+!/storage/stories/.gitkeep
+!/storage/images/.gitkeep
 
-# Logs
-*.log
-logs/
+# Upload / runtime directories
+/public/uploads/
 
-# IDE / editor
-.vscode/
-.idea/
+# IDE and editor files
+/.idea/
+/.vscode/
 *.swp
 *.swo
 *~
+.DS_Store
 
 # OS files
-.DS_Store
 Thumbs.db
+desktop.ini
 
-# Runtime cache
-/cache/
-/tmp/
-/.wrangler/
+# Backup and archive files
+*.backup
+*.bak
+*.tar.gz
+*.zip
 
-# Modernization helpers (one-time scripts)
-modernize_*.py
+# PHP error logs
+*.log
+
+# Install lock file
+/install/install.lock

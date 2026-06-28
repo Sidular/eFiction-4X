@@ -1,0 +1,49 @@
+<?php
+/**
+ * eFiction configuration file.
+ * Copy this file to config.php and fill in your values during installation.
+ */
+
+declare(strict_types=1);
+
+return [
+    'db' => [
+        'host'     => 'localhost',
+        'database' => 'efiction',
+        'user'     => 'efiction',
+        'password' => 'changeme',
+        'charset'  => 'utf8mb4',
+        'prefix'   => 'fanfiction_',
+    ],
+    'site' => [
+        'key'        => 'default',
+        'url'        => 'https://example.com',
+        'title'      => 'eFiction Archive',
+        'email'      => 'admin@example.com',
+        'language'   => 'en',
+        'timezone'   => 'UTC',
+        'maintenance' => false,
+        'stories_path' => __DIR__ . '/storage/stories',
+        'images_path'  => __DIR__ . '/storage/images',
+    ],
+    'mail' => [
+        'method'  => 'mail', // mail, smtp, sendmail
+        'from'    => 'noreply@example.com',
+        'smtp' => [
+            'host'     => '',
+            'port'     => 587,
+            'secure'   => 'tls', // tls, ssl, or empty
+            'auth'     => false,
+            'username' => '',
+            'password' => '',
+        ],
+    ],
+    'session' => [
+        'name' => 'efiction_session',
+        'lifetime' => 86400,
+    ],
+    'security' => [
+        'csrf_token_name' => 'csrf_token',
+        'password_cost'   => 12,
+    ],
+];

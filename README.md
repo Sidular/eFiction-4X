@@ -1,75 +1,132 @@
-# eFiction 4.0.0
+# eFiction 4X
 
-## Project Overview
-- **Name**: eFiction v4.0.0 — Modernized PHP 8.x fork
-- **Goal**: Preserve the existing eFiction fanfiction archive while making it runnable on modern PHP 8.1+ and Apache/Nginx + PHP-FPM stacks.
-- **Features**: Fanfiction story/series management, reviews, categories, user profiles, admin panel, RSS, templates.
+A modern PHP fanfiction archive built on a clean, lightweight framework. It is designed for self-hosting on any web server with PHP 8.3+, MySQL/MariaDB, and Apache (or any server with URL rewriting).
+
+> **Status:** In development. Core routing, controllers, and installation are functional; many features are stubs or partially implemented.
 
 ## Requirements
-- **PHP**: 8.1 or newer (8.3 recommended)
-- **Extensions**: `pdo`, `pdo_mysql`, `mbstring`, `session`, `gd` (optional, for captchas)
-- **Database**: MySQL 5.7+ / MariaDB 10.3+ / Percona (PDO MySQL)
-- **Web server**: Apache 2.4 with `mod_rewrite` and `mod_headers`, or Nginx with equivalent security headers.
-- **Composer**: For dependency management (PHPMailer 6.x).
 
-## URLs / Entry Points
-- Public site: `/index.php`
-- Admin area: `/admin.php`
-- Browse: `/browse.php`
-- Story view: `/viewstory.php?sid=<id>`
-- User profile: `/viewuser.php?uid=<id>`
-- Search: `/search.php`
-- RSS: `/rss.php`
-- Login: `/user.php?action=login`
+- PHP >= 8.3
+- MySQL 5.7+ or MariaDB 10.3+
+- Apache with `mod_rewrite` enabled, or another web server configured to rewrite all requests to `index.php`
+- Composer 2.x
+- PHP extensions: `pdo`, `pdo_mysql`, `mbstring`, `session`, `json`, `fileinfo`, `openssl`
 
-## Data Architecture
-- **Database**: MySQL-compatible relational database, accessed via the PDO adapter in `includes/pdo_functions.php`.
-- **Table prefix**: Configurable via `config.php` (`TABLEPREFIX`).
-- **Stories**: Stored as flat files under `STORIESPATH` (configured during install).
-- **Templates**: `skins/<skin>/` and fallback `default_tpls/`.
+## Installation
 
-## Modernization Changes
-- `includes/dbfunctions.php` now routes to PDO by default, with MySQLi as fallback. The legacy `ext/mysql` driver is no longer supported.
-- `includes/pdo_functions.php` provides PDO-compatible wrappers (`dbquery`, `dbassoc`, `dbrow`, `dbnumrows`, `dbinsertid`, `dbprepare`, `dbexecute`) and exception-based error handling.
-- `header.php`:
-  - Removed calls to `get_magic_quotes_gpc()` and `register_globals` (removed in PHP 7).
-  - Replaced `list($usec,$sec)+microtime()` with `microtime(true)`.
-  - Fixed inverted `strpos()` arguments in IE detection.
-  - Added a guard when settings cannot be loaded.
-  - Initialized `$blocks` array before the loop.
-- `includes/corefunctions.php`:
-  - Replaced curly-brace string offset (`$var{0}`) with bracket notation (`$var[0]`) for PHP 8 compatibility.
-  - Replaced the custom `validEmail()` regex with `filter_var($str, FILTER_VALIDATE_EMAIL)`.
-  - Refactored `categoryitems()` to avoid `unset($catquery)` inside a `while` loop.
-  - Cleaned up `recurseCategories()` to use `$catlist` directly instead of a confusing variable variable.
-- Added `.htaccess` with security headers, file protection, and PHP runtime directives.
-- Added `composer.json` with PHPMailer 6.x and PHP 8.1+ requirement.
+1. **Clone the repository** into your web root (or a subdirectory):
 
-## Installation / Upgrade Notes
-1. Ensure your server runs PHP 8.1+ with `pdo_mysql` enabled.
-2. Run `composer install --no-dev` to install PHPMailer 6.x into `vendor/`.
-3. Update `includes/emailer.php` to load `vendor/autoload.php` and use `PHPMailer\PHPMailer\PHPMailer` instead of the bundled PHPMailer 5.x classes (this is the next recommended step).
-4. If you have an existing `config.php` from an older install, it should still work as long as the PDO adapter is used.
-5. Visit `install/install.php` for a fresh install or follow the upgrade prompts from the original `README.txt`.
+   ```bash
+   git clone https://github.com/Sidular/eFiction-4X.git
+   cd eFiction-4X
+   ```
 
-## Features Not Yet Modernized
-- Many pages still use raw string concatenation in SQL queries (`"... WHERE id = '".$var."'"`). These should be migrated to `dbprepare()`/`dbexecute()` over time.
-- The bundled TinyMCE 3.x and old PHPMailer 5.x files in `includes/` and `tinymce/` should be replaced with current versions.
-- Template engine (`class.TemplatePower.inc.php`) is old but functional; consider migrating to a modern engine (Twig/Plates) in a future rewrite.
-- No formal test suite exists yet; PHPStan and PHP_CodeSniffer are configured as dev dependencies.
+2. **Install dependencies** with Composer:
 
-## Recommended Next Steps
-1. Replace the bundled PHPMailer files with Composer's PHPMailer 6.x and update `includes/emailer.php`.
-2. Migrate the highest-risk SQL queries to parameterized statements using `dbprepare()`/`dbexecute()`.
-3. Run `composer install` and `composer run lint` to validate syntax across the project.
-4. Add a `phpstan.neon` and run `composer run analyze` to catch undefined variables and type issues.
-5. Set up a CI pipeline (GitHub Actions / GitLab CI) that runs `php -l` and PHPStan on every push.
+   ```bash
+   composer install --no-dev --optimize-autoloader
+   ```
 
-## Deployment Status
-- **Platform**: Traditional PHP hosting (Apache/Nginx + PHP-FPM) — NOT Cloudflare Pages.
-- **Status**: Partially modernized for PHP 8.x; runtime validation pending.
-- **Tech Stack**: PHP 8.1+, PDO MySQL, PHPMailer 6.x, Composer.
-- **Last Updated**: 2026-06-28
+   Or, if you do not have Composer installed on the server, you can run `composer install` locally and upload the `vendor/` directory.
+
+3. **Create a MySQL/MariaDB database** and a user with full privileges on that database.
+
+4. **Make the storage directories writable** by the web server:
+
+   ```bash
+   chmod -R 755 storage
+   ```
+
+   The following directories are used at runtime:
+   - `storage/stories` — chapter text files
+   - `storage/images` — uploaded images
+   - `storage/cache` — cached data
+   - `storage/logs` — error / application logs
+
+5. **Run the web installer**:
+
+   Open the site in a browser and visit `/install/`. Fill in the database credentials, site information, and admin account. The installer will:
+   - Create the database schema
+   - Insert default settings
+   - Write `config.php`
+   - Create the admin user
+
+6. **Remove or rename the `install/` directory** after installation for security:
+
+   ```bash
+   rm -rf install
+   ```
+
+7. **Copy the example configuration** (optional):
+
+   If you prefer to configure the site manually, copy `config.php.example` to `config.php` and adjust the values. The site will not run until `config.php` exists.
+
+   ```bash
+   cp config.php.example config.php
+   ```
+
+## Configuration
+
+The main configuration file is `config.php`. It is created automatically by the installer, but you can also edit it manually. Key sections:
+
+- `db` — database host, name, user, password, and table prefix
+- `site` — site URL, title, email, timezone, language, and storage paths
+- `mail` — email delivery method (`mail`, `smtp`, or `sendmail`)
+- `session` — session name and lifetime
+- `security` — CSRF token name and password hashing cost
+
+## URL Rewriting
+
+An `.htaccess` file is included for Apache. It redirects all non-file/directory requests to `index.php` and blocks access to sensitive directories (`src`, `templates`, `storage`, `vendor`, `config.php`, `composer.json`).
+
+For Nginx, use a configuration like:
+
+```nginx
+server {
+    listen 80;
+    server_name example.com;
+    root /var/www/efiction-4x;
+    index index.php;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ ^/(src|templates|storage|vendor|config\.php|composer\.json) {
+        deny all;
+    }
+}
+```
+
+## Development
+
+To run syntax checks on all PHP files:
+
+```bash
+composer run lint
+```
+
+To run PHPStan static analysis (development dependency):
+
+```bash
+composer install
+composer run analyze
+```
+
+## Security Notes
+
+- Keep `config.php` out of version control (it is already ignored by `.gitignore`).
+- Remove or rename the `install/` directory after installation.
+- Ensure `storage/` is writable but not directly accessible from the web.
+- Use HTTPS in production and set `session.secure` to `true` in `config.php`.
 
 ## License
-GPL-2.0-or-later (see original `README.txt` and source headers).
+
+GPL-2.0-or-later
