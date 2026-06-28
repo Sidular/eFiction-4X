@@ -1,7 +1,7 @@
-# eFiction Modern (PHP 8.x Compatibility Update)
+# eFiction 4.0.0
 
 ## Project Overview
-- **Name**: eFiction v3.5.5 — Modernized PHP 8.x fork
+- **Name**: eFiction v4.0.0 — Modernized PHP 8.x fork
 - **Goal**: Preserve the existing eFiction fanfiction archive while making it runnable on modern PHP 8.1+ and Apache/Nginx + PHP-FPM stacks.
 - **Features**: Fanfiction story/series management, reviews, categories, user profiles, admin panel, RSS, templates.
 
