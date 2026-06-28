@@ -238,65 +238,47 @@ foreach ($checks as $check) {
 
                         <div class="form-group">
                             <label for="db_auto_mode">Database Setup Mode</label>
-                            <select id="db_auto_mode" name="db_auto_mode">
-                                <option value="1" <?= (inputRaw('db_auto_mode', '1') === '1') ? 'selected' : '' ?>>Automatic — create the database and a dedicated user</option>
-                                <option value="0" <?= (inputRaw('db_auto_mode', '1') === '0') ? 'selected' : '' ?>>Manual — I already have a database and user</option>
+                            <select id="db_auto_mode" name="db_auto_mode" disabled>
+                                <option value="0" selected>Manual — provide an existing database and user</option>
                             </select>
-                            <small>Automatic mode uses a temporary privileged account to create the database and generate a secure eFiction user.</small>
+                            <input type="hidden" name="db_auto_mode" value="0">
+                            <small>Automatic database/user creation is disabled because it requires a privileged MySQL account. Enter your database details below.</small>
                         </div>
 
                         <div class="form-group">
                             <label for="db_host">Database Host</label>
                             <input type="text" id="db_host" name="db_host" value="<?= input('db_host', 'localhost') ?>" required>
-                            <small>Usually <code>localhost</code>. Some hosts use an IP address or a separate hostname.</small>
+                            <small>Usually <code>localhost</code> or a host-provided database server.</small>
                         </div>
 
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="db_database">Database Name</label>
                                 <input type="text" id="db_database" name="db_database" value="<?= input('db_database', 'efiction') ?>" required>
-                            </div>
+                            <small>The database must already exist unless your database user has CREATE privileges.</small>
+                        </div>
                             <div class="form-group">
                                 <label for="db_prefix">Table Prefix</label>
                                 <input type="text" id="db_prefix" name="db_prefix" value="<?= input('db_prefix', 'fanfiction_') ?>" required pattern="[a-zA-Z0-9_]+" title="Letters, numbers, and underscores only">
-                            </div>
+                            <small>Table prefix used for all eFiction tables.</small>
+                        </div>
                         </div>
 
-                        <div id="db-auto-fields" class="conditional-panel <?= (inputRaw('db_auto_mode', '1') === '1') ? 'open' : '' ?>">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="db_admin_user">Privileged Admin User</label>
-                                    <input type="text" id="db_admin_user" name="db_admin_user" value="<?= input('db_admin_user', '') ?>" required>
-                                    <small>A temporary MySQL/MariaDB user with CREATE, CREATE USER, and GRANT privileges.</small>
-                                </div>
-                                <div class="form-group">
-                                    <label for="db_admin_password">Privileged Admin Password</label>
-                                    <input type="password" id="db_admin_password" name="db_admin_password" value="<?= input('db_admin_password', '') ?>">
-                                </div>
-                            </div>
-                            <input type="hidden" id="db_user" name="db_user" value="<?= input('db_user', '') ?>">
-                            <input type="hidden" id="db_password" name="db_password" value="">
-                        </div>
-
-                        <div id="db-manual-fields" class="conditional-panel <?= (inputRaw('db_auto_mode', '1') === '0') ? 'open' : '' ?>">
+                        <div id="db-manual-fields" class="conditional-panel open">
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="db_user_manual">Database User</label>
-                                    <input type="text" id="db_user_manual" name="db_user_manual" value="<?= input('db_user', '') ?>">
+                                    <input type="text" id="db_user_manual" name="db_user_manual" value="<?= input('db_user', 'efiction') ?>" required>
                                 </div>
                                 <div class="form-group">
                                     <label for="db_password_manual">Database Password</label>
-                                    <input type="password" id="db_password_manual" name="db_password_manual" value="">
+                                    <input type="password" id="db_password_manual" name="db_password_manual" value="<?= input('db_password', '') ?>" required>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="form-group checkbox" id="db-create-wrapper">
-                            <label>
-                                <input type="checkbox" id="db_create" name="db_create" value="1" <?= inputRaw('db_create', false) ? 'checked' : '' ?>>
-                                Create database if it does not exist (requires CREATE privileges)
-                            </label>
-                        </div>
+                        <input type="hidden" id="db_user" name="db_user" value="<?= input('db_user', 'efiction') ?>">
+                        <input type="hidden" id="db_password" name="db_password" value="<?= input('db_password', '') ?>">
 
                         <div class="form-actions">
                             <button type="button" class="btn btn-secondary" data-prev>Back</button>
@@ -312,16 +294,19 @@ foreach ($checks as $check) {
                         <div class="form-group">
                             <label for="site_title">Site Title</label>
                             <input type="text" id="site_title" name="site_title" value="<?= input('site_title', 'eFiction Archive') ?>" required>
+                            <small>Displayed in the site header and page titles.</small>
                         </div>
 
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="site_email">Site Email</label>
-                                <input type="email" id="site_email" name="site_email" value="<?= input('site_email', '') ?>" required>
+                                <input type="email" id="site_email" name="site_email" value="<?= input('site_email', 'admin@example.com') ?>" required>
+                                <small>Used as the sender address for site emails.</small>
                             </div>
                             <div class="form-group">
                                 <label for="site_url">Site URL</label>
                                 <input type="url" id="site_url" name="site_url" value="<?= input('site_url', $baseUrl) ?>" required>
+                            <small>The URL where eFiction will be accessed. Update if the detected value is incorrect.</small>
                             </div>
                         </div>
 
@@ -404,28 +389,30 @@ foreach ($checks as $check) {
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="admin_penname">Penname</label>
-                                <input type="text" id="admin_penname" name="admin_penname" value="<?= input('admin_penname', '') ?>" required>
+                                <input type="text" id="admin_penname" name="admin_penname" value="<?= input('admin_penname', 'admin') ?>" required>
+                            <small>Your public author name on the archive.</small>
                             </div>
                             <div class="form-group">
                                 <label for="admin_realname">Real Name <span class="optional">(optional)</span></label>
-                                <input type="text" id="admin_realname" name="admin_realname" value="<?= input('admin_realname', '') ?>">
+                                <input type="text" id="admin_realname" name="admin_realname" value="<?= input('admin_realname', 'Administrator') ?>">
                             </div>
                         </div>
 
                         <div class="form-group">
                             <label for="admin_email">Email Address</label>
-                            <input type="email" id="admin_email" name="admin_email" value="<?= input('admin_email', '') ?>" required>
+                            <input type="email" id="admin_email" name="admin_email" value="<?= input('admin_email', 'admin@example.com') ?>" required>
+                            <small>Used for password recovery and site notifications.</small>
                         </div>
 
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="admin_password">Password</label>
-                                <input type="password" id="admin_password" name="admin_password" minlength="8" required>
-                                <small>At least 8 characters.</small>
+                                <input type="password" id="admin_password" name="admin_password" minlength="8" required value="<?= input('admin_password', '') ?>">
+                                <small>At least 8 characters. Choose a strong password.</small>
                             </div>
                             <div class="form-group">
                                 <label for="admin_password_confirm">Confirm Password</label>
-                                <input type="password" id="admin_password_confirm" name="admin_password_confirm" minlength="8" required>
+                                <input type="password" id="admin_password_confirm" name="admin_password_confirm" minlength="8" required value="<?= input('admin_password_confirm', '') ?>">
                             </div>
                         </div>
 
@@ -467,6 +454,16 @@ foreach ($checks as $check) {
                     </div>
                     <h2>Installation Complete</h2>
                     <p>eFiction has been installed successfully. For security, please delete or rename the <code>install</code> directory.</p>
+
+                    <?php if ($installResult && $installResult['ok'] && !empty($installResult['details']['db_user']) && !empty($installResult['details']['db_password'])): ?>
+                        <div class="alert alert-info">
+                            <p><strong>Database credentials created automatically:</strong></p>
+                            <p>User: <code><?= \eFiction\Install\Installer::e($installResult['details']['db_user']) ?></code></p>
+                            <p>Password: <code><?= \eFiction\Install\Installer::e($installResult['details']['db_password']) ?></code></p>
+                            <p>Save these somewhere safe. They are also stored in <code>config.php</code>.</p>
+                        </div>
+                    <?php endif; ?>
+
                     <div class="success-actions">
                         <a href="/" class="btn btn-primary">Go to Site</a>
                         <a href="/admin" class="btn btn-secondary">Admin Panel</a>

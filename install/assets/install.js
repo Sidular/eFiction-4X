@@ -23,15 +23,11 @@
     const smtpPanel = document.getElementById('smtp-settings');
     const dbCreate = document.getElementById('db_create');
     const dbAutoMode = document.getElementById('db_auto_mode');
-    const dbAutoFields = document.getElementById('db-auto-fields');
     const dbManualFields = document.getElementById('db-manual-fields');
-    const dbAdminUser = document.getElementById('db_admin_user');
-    const dbAdminPassword = document.getElementById('db_admin_password');
     const dbUserManual = document.getElementById('db_user_manual');
     const dbPasswordManual = document.getElementById('db_password_manual');
     const dbUserHidden = document.getElementById('db_user');
     const dbPasswordHidden = document.getElementById('db_password');
-    const dbCreateWrapper = document.getElementById('db-create-wrapper');
 
     let currentStep = 1;
     let dbTested = false;
@@ -79,34 +75,14 @@
         return div.innerHTML;
     }
 
-    function isAutoMode() {
-        return dbAutoMode && dbAutoMode.value === '1';
-    }
-
     function syncHiddenDbFields() {
-        if (!dbAutoMode) return;
-        if (isAutoMode()) {
-            if (dbUserHidden) dbUserHidden.value = '';
-            if (dbPasswordHidden) dbPasswordHidden.value = '';
-        } else {
-            if (dbUserHidden && dbUserManual) dbUserHidden.value = dbUserManual.value;
-            if (dbPasswordHidden && dbPasswordManual) dbPasswordHidden.value = dbPasswordManual.value;
-        }
+        if (dbUserHidden && dbUserManual) dbUserHidden.value = dbUserManual.value;
+        if (dbPasswordHidden && dbPasswordManual) dbPasswordHidden.value = dbPasswordManual.value;
     }
 
     function updateDbMode() {
-        if (!dbAutoMode) return;
-        const auto = isAutoMode();
-
-        if (dbAutoFields) dbAutoFields.classList.toggle('open', auto);
-        if (dbManualFields) dbManualFields.classList.toggle('open', !auto);
-        if (dbCreateWrapper) dbCreateWrapper.style.display = auto ? 'none' : '';
-
-        if (dbAdminUser) dbAdminUser.required = auto;
-        if (dbUserManual) dbUserManual.required = !auto;
-
-        if (dbCreate) dbCreate.checked = auto || dbCreate.checked;
-
+        // Manual mode is now the only option; the hidden db_auto_mode is always 0.
+        if (dbManualFields) dbManualFields.classList.add('open');
         syncHiddenDbFields();
     }
 
@@ -200,11 +176,8 @@
         });
     }
 
-    // Database mode toggle
-    if (dbAutoMode) {
-        dbAutoMode.addEventListener('change', updateDbMode);
-        updateDbMode();
-    }
+    // Manual mode is the only option; keep hidden fields in sync.
+    updateDbMode();
 
     if (dbUserManual) dbUserManual.addEventListener('input', syncHiddenDbFields);
     if (dbPasswordManual) dbPasswordManual.addEventListener('input', syncHiddenDbFields);
@@ -226,21 +199,13 @@
                 db_host: data.db_host,
                 db_database: data.db_database,
                 db_prefix: data.db_prefix,
-                db_auto_mode: data.db_auto_mode || '0',
-                db_create: auto ? '1' : (data.db_create || '0'),
+                db_auto_mode: '0',
+                db_create: '0',
+                db_user: data.db_user || '',
+                db_password: data.db_password || '',
+                db_admin_user: '',
+                db_admin_password: '',
             };
-
-            if (auto) {
-                payload.db_admin_user = data.db_admin_user || '';
-                payload.db_admin_password = data.db_admin_password || '';
-                payload.db_user = '';
-                payload.db_password = '';
-            } else {
-                payload.db_user = data.db_user || '';
-                payload.db_password = data.db_password || '';
-                payload.db_admin_user = '';
-                payload.db_admin_password = '';
-            }
 
             ajax('test_db', payload).then(result => {
                 setButtonLoading(btnTestDb, false);
@@ -297,8 +262,6 @@
         const dbEl = document.getElementById('review-database');
         const siteEl = document.getElementById('review-site');
         const adminEl = document.getElementById('review-admin');
-        const auto = data.db_auto_mode === '1';
-
         const mask = '••••••••';
         dbEl.innerHTML = '';
 
@@ -306,15 +269,9 @@
             '<dt>Host</dt><dd>' + escapeHtml(data.db_host || '') + '</dd>',
             '<dt>Database</dt><dd>' + escapeHtml(data.db_database || '') + '</dd>',
             '<dt>Prefix</dt><dd>' + escapeHtml(data.db_prefix || '') + '</dd>',
+            '<dt>Setup mode</dt><dd>Manual</dd>',
+            '<dt>User</dt><dd>' + escapeHtml(data.db_user || '') + '</dd>',
         ];
-
-        if (auto) {
-            dbRows.push('<dt>Setup mode</dt><dd>Automatic</dd>');
-            dbRows.push('<dt>Privileged user</dt><dd>' + escapeHtml(data.db_admin_user || '') + '</dd>');
-        } else {
-            dbRows.push('<dt>Setup mode</dt><dd>Manual</dd>');
-            dbRows.push('<dt>User</dt><dd>' + escapeHtml(data.db_user || '') + '</dd>');
-        }
 
         dbEl.innerHTML = dbRows.join('');
 
