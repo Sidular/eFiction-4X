@@ -228,7 +228,7 @@ CREATE TABLE `{prefix}reviews` (
     `sid` int(11) unsigned NOT NULL DEFAULT 0,
     `chapid` int(11) unsigned NOT NULL DEFAULT 0,
     `seriesid` int(11) unsigned NOT NULL DEFAULT 0,
-    `uid` int(11) unsigned NOT NULL DEFAULT 0,
+    `uid` int(11) unsigned DEFAULT NULL,
     `reviewer` varchar(100) DEFAULT NULL,
     `email` varchar(255) DEFAULT NULL,
     `review` text DEFAULT NULL,
